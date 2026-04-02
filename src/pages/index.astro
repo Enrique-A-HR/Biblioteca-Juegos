@@ -1,17 +1,98 @@
 ---
+import Layout from '../layouts/Layout.astro';
+import GameCard from '../components/GameCard.astro';
+import { supabase } from '../lib/supabase';
 
+// 1. Fetch de datos desde Supabase
+// Traemos solo los juegos activos y los ordenamos por título
+const { data: games, error } = await supabase
+  .from('games')
+  .select('*')
+  .eq('is_active', true)
+  .order('title', { ascending: true });
+
+if (error) {
+  console.error("Error al obtener los juegos:", error.message);
+}
+
+// 2. Verificar si hay una sesión activa para funciones de admin (opcional)
+const { data: { session } } = await supabase.auth.getSession();
 ---
 
-<html lang="en">
+<Layout title="Catálogo de Juegos | 3DS & DS">
 	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
+		<link href="/src/styles/global.css" rel="stylesheet">
 	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+	<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+		
+		<header class="mb-12 text-center sm:text-left flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+			<div>
+				<h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+					Biblioteca <span class="text-cyan-500 text-2xl sm:text-3xl block sm:inline">3DS & DS</span>
+				</h1>
+				<p class="mt-3 text-lg text-slate-400 max-w-2xl italic">
+					Una colección de juegos 3DS y DS que he ido recopilando a lo largo del tiempo.
+				</p>
+			</div>
+			
+			{session && (
+				<div class="flex items-center gap-2 bg-slate-800/50 border border-cyan-500/30 px-4 py-2 rounded-lg">
+					<div class="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+					<span class="text-xs font-mono text-cyan-400 uppercase tracking-widest">Admin Mode</span>
+				</div>
+			)}
+		</header>
+
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-12 gap-x-8">
+			{games && games.length > 0 ? (
+				games.map((game) => (
+					<GameCard 
+						title={game.title}
+						platform={game.platform}
+						coverUrl={game.cover_url}
+						targetUrl={game.target_url}
+						size={game.file_size}
+						language={game.language}
+						hasHshop={game.has_hshop}
+					/>
+				))
+			) : (
+				<div class="col-span-full py-20 text-center">
+					<p class="text-slate-500 text-xl italic">No hay juegos en el catálogo todavía...</p>
+					<p class="text-slate-600 text-sm mt-2">Usa el panel de administración para añadir el primero.</p>
+				</div>
+			)}
+		</div>
+
+		<footer class="mt-24 pt-8 border-t border-slate-800 text-center text-slate-500 text-xs">
+			<p>&copy; {new Date().getFullYear()} - Desarrollado con Astro, Tailwind y Supabase - V.0.1</p>
+		</footer>
+
+		<div class="mt-8 flex items-center justify-center gap-4 pb-4">
+			<p class=" border-slate-800 text-center text-slate-500">Desarollado por:</p>
+			<div class="w-12 h-12 rounded-full border border-slate-600 bg-slate-800/60 flex items-center justify-center text-slate-400 text-[10px] font-semibold uppercase tracking-wider">
+				<img src="https://gravatar.com/avatar/98533d1e906862d5769acdea2d7655e9de43111ce648704d865cb3dbcc7c7c27?v=1773215298000&size=256&d=initials">
+			</div>
+			<span class="text-xl font-semibold text-slate-200">Ghoster</span>
+		</div>
+	</main>
+</Layout>
+
+<style>
+	/* Animación de entrada para las tarjetas */
+	.grid > div {
+		animation: fadeIn 0.6s ease-out forwards;
+		opacity: 0;
+	}
+
+	@keyframes fadeIn {
+		from { opacity: 0; transform: translateY(20px); }
+		to { opacity: 1; transform: translateY(0); }
+	}
+
+	/* Retraso progresivo para cada tarjeta (opcional) */
+	.grid > div:nth-child(1) { animation-delay: 0.1s; }
+	.grid > div:nth-child(2) { animation-delay: 0.2s; }
+	.grid > div:nth-child(3) { animation-delay: 0.3s; }
+	.grid > div:nth-child(4) { animation-delay: 0.4s; }
+</style>

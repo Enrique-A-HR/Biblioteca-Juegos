@@ -1,0 +1,57 @@
+---
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="Catálogo personal de juegos 3DS y DS" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+	</head>
+	<body class="bg-[#0f172a] text-slate-100 selection:bg-cyan-500 selection:text-white">
+		<div class="fixed inset-0 -z-10 h-full w-full bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-25"></div>
+		
+		<slot />
+
+		<style is:global>
+			:root {
+				--accent: 136, 58, 234;
+				--accent-light: 224, 204, 250;
+				--accent-dark: 49, 10, 101;
+			}
+			html {
+				font-family: 'Inter', system-ui, sans-serif;
+				scroll-behavior: smooth;
+			}
+			body {
+				margin: 0;
+				min-height: 100vh;
+			}
+			/* Estilo personalizado para el scrollbar */
+			::-webkit-scrollbar {
+				width: 8px;
+			}
+			::-webkit-scrollbar-track {
+				background: #0f172a;
+			}
+			::-webkit-scrollbar-thumb {
+				background: #334155;
+				border-radius: 10px;
+			}
+			::-webkit-scrollbar-thumb:hover {
+				background: #475569;
+			}
+		</style>
+	</body>
+</html>
