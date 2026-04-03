@@ -99,7 +99,7 @@ import Layout from '../layouts/Layout.astro';
                 </div>
                 <div class="space-y-2">
                   <label class="text-sm font-semibold text-slate-300">Idioma</label>
-                  <input type="text" name="language" placeholder="ESP/ENG" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500" required />
+                  <input type="text" name="language" placeholder="ESP/ENG/JP o All" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500" required />
                 </div>
               </div>
               <div class="space-y-2">
@@ -258,6 +258,36 @@ import Layout from '../layouts/Layout.astro';
   };
 
   const panelIds = ['add', 'edit', 'delete', 'view'];
+  const allowedLanguageCodes = ['ESP', 'ENG', 'JP'] as const;
+
+  const normalizeLanguageForStorage = (rawLanguage: string) => {
+    const normalized = (rawLanguage ?? '').trim().toUpperCase();
+    const allAliases = ['ALL', 'TODO', 'TODOS', 'MULTI', 'MULTIIDIOMA'];
+
+    if (!normalized) {
+      return { ok: false as const, error: 'Ingresa al menos un idioma (ESP, ENG, JP o All).' };
+    }
+
+    if (allAliases.includes(normalized)) {
+      return { ok: true as const, value: 'ESP/ENG/JP' };
+    }
+
+    const tokens = normalized
+      .split(/[\s,/|+-]+/)
+      .map((token) => token.trim())
+      .filter(Boolean);
+
+    const unique = Array.from(new Set(tokens));
+    const valid = unique.filter((token): token is (typeof allowedLanguageCodes)[number] =>
+      (allowedLanguageCodes as readonly string[]).includes(token)
+    );
+
+    if (!valid.length) {
+      return { ok: false as const, error: 'Idioma invalido. Usa ESP, ENG, JP o All.' };
+    }
+
+    return { ok: true as const, value: valid.join('/') };
+  };
 
   const setActivePanel = (panel: string) => {
     currentPanel = panel;
@@ -451,6 +481,12 @@ import Layout from '../layouts/Layout.astro';
       const formData = new FormData(addForm);
       const title = formData.get('title') as string;
       const hasHshop = (formData.get('has_hshop') as string) === 'on';
+      const normalizedLanguage = normalizeLanguageForStorage(String(formData.get('language') ?? ''));
+
+      if (!normalizedLanguage.ok) {
+        showToast(normalizedLanguage.error, 'error');
+        return;
+      }
       
       const { error } = await supabase.from('games').insert([{
         title: title,
@@ -458,7 +494,7 @@ import Layout from '../layouts/Layout.astro';
         cover_url: formData.get('cover_url'),
         target_url: formData.get('target_url'),
         file_size: formData.get('file_size'),
-        language: formData.get('language'),
+        language: normalizedLanguage.value,
         has_hshop: hasHshop,
         is_active: true
       }]);
@@ -478,9 +514,15 @@ import Layout from '../layouts/Layout.astro';
 
       const formData = new FormData(editForm);
       const gameId = formData.get('game_id') as string;
+      const normalizedLanguage = normalizeLanguageForStorage(String(formData.get('language') ?? ''));
 
       if (!gameId) {
         showToast('Selecciona un juego para editar', 'error');
+        return;
+      }
+
+      if (!normalizedLanguage.ok) {
+        showToast(normalizedLanguage.error, 'error');
         return;
       }
 
@@ -492,7 +534,7 @@ import Layout from '../layouts/Layout.astro';
           cover_url: formData.get('cover_url'),
           target_url: formData.get('target_url'),
           file_size: formData.get('file_size'),
-          language: formData.get('language'),
+          language: normalizedLanguage.value,
           has_hshop: (formData.get('has_hshop') as string) === 'on',
         })
         .eq('id', gameId);

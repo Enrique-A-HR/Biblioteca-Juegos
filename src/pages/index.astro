@@ -3,13 +3,41 @@ import Layout from '../layouts/Layout.astro';
 import GameCard from '../components/GameCard.astro';
 import { supabase } from '../lib/supabase';
 
+const languageOptions = [
+	{ code: 'TODOS', name: 'All languages' },
+	{ code: 'ESP', name: 'ESP' },
+	{ code: 'ENG', name: 'ENG' },
+	{ code: 'JP', name: 'JP' }
+];
+
+const getFlagSVG = (code: string) => {
+	const flags: Record<string, string> = {
+		TODOS: '<svg class="w-5 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>',
+		ESP: '<svg class="w-5 h-4" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="0.5" fill="#C60B1E"/><rect y="0.5" width="3" height="1" fill="#FFC400"/><rect y="1.5" width="3" height="0.5" fill="#C60B1E"/></svg>',
+		ENG: '<svg class="w-5 h-4" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="30" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="white" stroke-width="6"/><path d="M30,0 L30,30 M0,15 L60,15" stroke="white" stroke-width="4"/><path d="M30,0 L30,30 M0,15 L60,15" stroke="#C8102E" stroke-width="2.4"/></svg>',
+		JP: '<svg class="w-5 h-4" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="2" fill="white" stroke="#999" stroke-width="0.05"/><circle cx="1.5" cy="1" r="0.6" fill="#BC002D"/></svg>'
+	};
+	return flags[code] || '';
+};
+
+const getGameLanguageTags = (language: string | null | undefined) => {
+	const normalizedLanguage = (language ?? '').toUpperCase();
+	const tags: string[] = [];
+
+	if (normalizedLanguage.includes('ESP')) tags.push('ESP');
+	if (normalizedLanguage.includes('ENG')) tags.push('ENG');
+	if (normalizedLanguage.includes('JP') || normalizedLanguage.includes('JPN')) tags.push('JP');
+
+	return tags;
+};
+
 // 1. Fetch de datos desde Supabase
-// Traemos solo los juegos activos y los ordenamos por título
+// Traemos todos los juegos activos; el filtro por idioma se aplica en cliente.
 const { data: games, error } = await supabase
-  .from('games')
-  .select('*')
-  .eq('is_active', true)
-  .order('title', { ascending: true });
+	.from('games')
+	.select('*')
+	.eq('is_active', true)
+	.order('title', { ascending: true });
 
 if (error) {
   console.error("Error al obtener los juegos:", error.message);
@@ -19,17 +47,73 @@ if (error) {
 const { data: { session } } = await supabase.auth.getSession();
 ---
 
-<Layout title="Catálogo de Juegos | 3DS & DS">
+<Layout title="Game Catalog | 3DS & DS">
 	<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 		
 		<header class="mb-12 text-center sm:text-left flex flex-col sm:flex-row sm:items-end justify-between gap-4">
 			<div>
 				<h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-					Biblioteca <span class="text-cyan-500 text-2xl sm:text-3xl block sm:inline">3DS & DS</span>
+					3NDS ARCHIVE <span class="text-cyan-500 text-2xl sm:text-3xl block sm:inline">for 3DS & DS Games</span>
 				</h1>
 				<p class="mt-3 text-lg text-slate-400 max-w-2xl italic">
-					Una colección de juegos 3DS y DS que he ido recopilando a lo largo del tiempo.
+					A catalog compilation of some 3DS and DS games that is being built little by little. This tool is made to help you quickly find titles on Hshop or other ROM websites. <span class="text-cyan-400 not-italic font-semibold">Still in development...</span>
 				</p>
+				<form method="get" class="mt-5 flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-3">
+					<div class="flex items-center gap-2 rounded-md border border-slate-700 bg-slate-800/80 px-3 py-1.5">
+						<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+						<input
+							id="search-input"
+							type="search"
+							name="q"
+							placeholder="Search game..."
+							class="w-52 sm:w-64 bg-transparent text-sm text-slate-100 placeholder:text-slate-500 outline-none"
+							autocomplete="off"
+						/>
+					</div>
+					<label for="platform-pref" class="text-xs font-semibold uppercase tracking-wider text-slate-300">Platform</label>
+					<select
+						id="platform-pref"
+						name="platform"
+						class="rounded-md border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-100 outline-none transition focus:border-cyan-400"
+					>
+						<option value="TODOS">All</option>
+						<option value="3DS">3DS</option>
+						<option value="DS">DS</option>
+					</select>
+					<label for="language-pref" class="text-xs font-semibold uppercase tracking-wider text-slate-300">Language</label>
+					<div class="relative inline-block w-auto">
+						<button
+							id="language-pref"
+							type="button"
+							class="rounded-md border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-100 outline-none transition focus:border-cyan-400 hover:bg-slate-700 flex items-center gap-2"
+						>
+							<span id="selected-flag" class="flex items-center gap-2">
+								<span class="w-5 h-4" set:html={getFlagSVG('TODOS')}></span>
+								<span>All languages</span>
+							</span>
+							<svg class="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+								<path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+							</svg>
+						</button>
+						<div
+							id="language-dropdown"
+							class="hidden absolute top-full mt-1 left-0 z-10 w-max rounded-md border border-slate-600 bg-slate-800 shadow-lg"
+						>
+							{languageOptions.map((option) => (
+								<button
+									type="button"
+									class="language-option w-full text-left px-3 py-2 text-sm font-medium text-slate-100 hover:bg-slate-700 flex items-center gap-2 whitespace-nowrap transition first:rounded-t-md last:rounded-b-md"
+									data-value={option.code}
+									data-name={option.name}
+								>
+									<span class="w-5 h-4" set:html={getFlagSVG(option.code)}></span>
+									<span>{option.name}</span>
+								</button>
+							))}
+						</div>
+						<input type="hidden" name="lang" id="lang-input" value="TODOS" />
+					</div>
+				</form>
 			</div>
 			
 			{session && (
@@ -40,9 +124,9 @@ const { data: { session } } = await supabase.auth.getSession();
 			)}
 		</header>
 
-		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-12 gap-x-8">
-			{games && games.length > 0 ? (
-				games.map((game) => (
+		<div id="games-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-12 gap-x-8">
+			{games?.map((game) => (
+				<div data-game-card data-languages={getGameLanguageTags(game.language).join(',')} data-title={game.title.toLowerCase()} data-platform={String(game.platform ?? '').toUpperCase()}>
 					<GameCard 
 						title={game.title}
 						platform={game.platform}
@@ -52,28 +136,260 @@ const { data: { session } } = await supabase.auth.getSession();
 						language={game.language}
 						hasHshop={game.has_hshop}
 					/>
-				))
-			) : (
-				<div class="col-span-full py-20 text-center">
-					<p class="text-slate-500 text-xl italic">No hay juegos en el catálogo todavía...</p>
-					<p class="text-slate-600 text-sm mt-2">Usa el panel de administración para añadir el primero.</p>
 				</div>
-			)}
+			))}
+			<div id="no-results-message" class="col-span-full py-20 text-center text-slate-500 text-xl italic hidden">
+				No matches found
+			</div>
+		</div>
+
+		<div id="load-more-wrapper" class="mt-10 hidden">
+			<button
+				id="load-more-button"
+				type="button"
+				class="mx-auto block rounded-lg border border-cyan-500/40 bg-slate-900/70 px-6 py-2.5 text-sm font-semibold text-cyan-300 transition hover:bg-slate-800 hover:text-cyan-200"
+			>
+				Load more
+			</button>
 		</div>
 
 		<footer class="mt-24 pt-8 border-t border-slate-800 text-center text-slate-500 text-xs">
-			<p>&copy; {new Date().getFullYear()} - Desarrollado con Astro, Tailwind y Supabase - V.0.1</p>
+			<p>&copy; {new Date().getFullYear()} - Built with Astro, Tailwind and Supabase - V.0.2</p>
 		</footer>
 
 		<div class="mt-8 flex items-center justify-center gap-4 pb-4">
-			<p class=" border-slate-800 text-center text-slate-500">Desarollado por:</p>
+			<p class=" border-slate-800 text-center text-slate-500">Developed by:</p>
 			<div class="w-12 h-12 rounded-full border border-slate-600 bg-slate-800/60 flex items-center justify-center text-slate-400 text-[10px] font-semibold uppercase tracking-wider">
-				<img src="https://gravatar.com/avatar/98533d1e906862d5769acdea2d7655e9de43111ce648704d865cb3dbcc7c7c27?v=1773215298000&size=256&d=initials">
+				<img src="https://avatars.githubusercontent.com/u/178928214?v=4" alt="WiseCupcake's avatar" class="w-full h-full object-cover rounded-full" loading="lazy" />
 			</div>
-			<span class="text-xl font-semibold text-slate-200">Ghoster</span>
+			<a href="https://gravatar.com/wisecupcake6bf64777d4" target="_blank" rel="noopener noreferrer" class="text-xl font-semibold text-slate-200 hover:text-cyan-300 transition">Ghoster</a>
 		</div>
 	</main>
 </Layout>
+
+<script>
+	const supportedLanguages = ['TODOS', 'ESP', 'ENG', 'JP'];
+	const supportedPlatforms = ['TODOS', '3DS', 'DS'];
+	const languageDropdown = document.getElementById('language-dropdown') as HTMLElement | null;
+	const languageButton = document.getElementById('language-pref') as HTMLButtonElement | null;
+	const platformSelect = document.getElementById('platform-pref') as HTMLSelectElement | null;
+	const langInput = document.getElementById('lang-input') as HTMLInputElement | null;
+	const selectedFlagDisplay = document.getElementById('selected-flag') as HTMLElement | null;
+	const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
+	const loadMoreWrapper = document.getElementById('load-more-wrapper') as HTMLElement | null;
+	const loadMoreButton = document.getElementById('load-more-button') as HTMLButtonElement | null;
+	const gameCards = Array.from(document.querySelectorAll<HTMLElement>('[data-game-card]'));
+	const noResultsMessage = document.getElementById('no-results-message');
+	const INITIAL_VISIBLE_GAMES = 12;
+	const VISIBLE_STEP = 12;
+	let visibleLimit = INITIAL_VISIBLE_GAMES;
+	let currentSearch = '';
+	let searchDebounceId: ReturnType<typeof setTimeout> | null = null;
+
+	const getLanguageFromUrl = () => {
+		const selected = new URLSearchParams(window.location.search).get('lang')?.toUpperCase() ?? 'TODOS';
+		return supportedLanguages.includes(selected) ? selected : 'TODOS';
+	};
+
+	const getPlatformFromUrl = () => {
+		const selected = new URLSearchParams(window.location.search).get('platform')?.toUpperCase() ?? 'TODOS';
+		return supportedPlatforms.includes(selected) ? selected : 'TODOS';
+	};
+
+	const toggleDropdown = () => {
+		if (languageDropdown) {
+			languageDropdown.classList.toggle('hidden');
+		}
+	};
+
+	const closeDropdown = () => {
+		if (languageDropdown) {
+			languageDropdown.classList.add('hidden');
+		}
+	};
+
+	const updateSelectedLanguage = (code: string, name: string) => {
+		if (langInput) langInput.value = code;
+		if (selectedFlagDisplay) {
+			const flagSvgs: Record<string, string> = {
+				TODOS: '<svg class="w-5 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>',
+				ESP: '<svg class="w-5 h-4" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="0.5" fill="#C60B1E"/><rect y="0.5" width="3" height="1" fill="#FFC400"/><rect y="1.5" width="3" height="0.5" fill="#C60B1E"/></svg>',
+				ENG: '<svg class="w-5 h-4" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="30" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="white" stroke-width="6"/><path d="M30,0 L30,30 M0,15 L60,15" stroke="white" stroke-width="4"/><path d="M30,0 L30,30 M0,15 L60,15" stroke="#C8102E" stroke-width="2.4"/></svg>',
+				JP: '<svg class="w-5 h-4" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="2" fill="white" stroke="#999" stroke-width="0.05"/><circle cx="1.5" cy="1" r="0.6" fill="#BC002D"/></svg>'
+			};
+			selectedFlagDisplay.innerHTML = `<span class="flex items-center gap-2"><span class="w-5 h-4">${flagSvgs[code]}</span><span>${name}</span></span>`;
+		}
+		closeDropdown();
+		const selectedLanguage = code;
+		const selectedPlatform = platformSelect && supportedPlatforms.includes(platformSelect.value)
+			? platformSelect.value
+			: 'TODOS';
+		const url = new URL(window.location.href);
+		url.searchParams.set('lang', selectedLanguage);
+		url.searchParams.set('platform', selectedPlatform);
+		if (currentSearch) {
+			url.searchParams.set('q', currentSearch);
+		} else {
+			url.searchParams.delete('q');
+		}
+		window.history.replaceState({}, '', url);
+		visibleLimit = INITIAL_VISIBLE_GAMES;
+		applyFilters(selectedLanguage, selectedPlatform, currentSearch);
+	};
+
+	const applyFilters = (selectedLanguage: string, selectedPlatform: string, searchQuery: string) => {
+		const matchingCards: HTMLElement[] = [];
+		const normalizedSearch = searchQuery.trim().toLowerCase();
+
+		for (const card of gameCards) {
+			const tags = (card.dataset.languages ?? '')
+				.split(',')
+				.map((tag) => tag.trim().toUpperCase())
+				.filter(Boolean);
+			const title = (card.dataset.title ?? '').toLowerCase();
+			const platform = (card.dataset.platform ?? '').toUpperCase();
+
+			const matchesLanguage = selectedLanguage === 'TODOS' || tags.includes(selectedLanguage);
+			const matchesPlatform = selectedPlatform === 'TODOS' || platform === selectedPlatform;
+			const matchesSearch = normalizedSearch.length === 0 || title.includes(normalizedSearch);
+			const matches = matchesLanguage && matchesPlatform && matchesSearch;
+			if (matches) {
+				matchingCards.push(card);
+			}
+		}
+
+		for (const card of gameCards) {
+			card.classList.add('hidden');
+		}
+
+		const visibleCards = matchingCards.slice(0, visibleLimit);
+		for (const card of visibleCards) {
+			card.classList.remove('hidden');
+		}
+
+		if (!noResultsMessage) return;
+
+		if (matchingCards.length === 0) {
+			noResultsMessage.textContent = 'No matches found';
+			noResultsMessage.classList.remove('hidden');
+			loadMoreWrapper?.classList.add('hidden');
+			return;
+		}
+
+		noResultsMessage.classList.add('hidden');
+
+		const hasMoreResults = matchingCards.length > visibleCards.length;
+		loadMoreWrapper?.classList.toggle('hidden', !hasMoreResults);
+	};
+
+	const syncFilterFromUrl = () => {
+		const urlParams = new URLSearchParams(window.location.search);
+		const selectedLanguage = getLanguageFromUrl();
+		const selectedPlatform = getPlatformFromUrl();
+		const selectedSearch = (urlParams.get('q') ?? '').trim();
+		visibleLimit = INITIAL_VISIBLE_GAMES;
+		currentSearch = selectedSearch;
+		if (langInput) langInput.value = selectedLanguage;
+		if (platformSelect) platformSelect.value = selectedPlatform;
+		if (searchInput) searchInput.value = selectedSearch;
+		
+		// Update the display of the selected language
+		const languageNames: Record<string, string> = { TODOS: 'All languages', ESP: 'ESP', ENG: 'ENG', JP: 'JP' };
+		if (selectedFlagDisplay && languageNames[selectedLanguage]) {
+			const flagSvgs: Record<string, string> = {
+				TODOS: '<svg class="w-5 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>',
+				ESP: '<svg class="w-5 h-4" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="0.5" fill="#C60B1E"/><rect y="0.5" width="3" height="1" fill="#FFC400"/><rect y="1.5" width="3" height="0.5" fill="#C60B1E"/></svg>',
+				ENG: '<svg class="w-5 h-4" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="30" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="white" stroke-width="6"/><path d="M30,0 L30,30 M0,15 L60,15" stroke="white" stroke-width="4"/><path d="M30,0 L30,30 M0,15 L60,15" stroke="#C8102E" stroke-width="2.4"/></svg>',
+				JP: '<svg class="w-5 h-4" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="2" fill="white" stroke="#999" stroke-width="0.05"/><circle cx="1.5" cy="1" r="0.6" fill="#BC002D"/></svg>'
+			};
+			selectedFlagDisplay.innerHTML = `<span class="flex items-center gap-2"><span class="w-5 h-4">${flagSvgs[selectedLanguage]}</span><span>${languageNames[selectedLanguage]}</span></span>`;
+		}
+		applyFilters(selectedLanguage, selectedPlatform, selectedSearch);
+	};
+
+	if (languageButton) {
+		languageButton.addEventListener('click', toggleDropdown);
+	}
+
+	const languageOptions = document.querySelectorAll<HTMLButtonElement>('.language-option');
+	languageOptions.forEach((option) => {
+		option.addEventListener('click', () => {
+			const code = option.dataset.value || 'TODOS';
+			const name = option.dataset.name || 'All languages';
+			updateSelectedLanguage(code, name);
+		});
+	});
+
+	document.addEventListener('click', (e) => {
+		if (languageButton && languageDropdown && !languageButton.contains(e.target as Node) && !languageDropdown.contains(e.target as Node)) {
+			closeDropdown();
+		}
+	});
+
+	if (searchInput) {
+		searchInput.addEventListener('input', () => {
+			const selectedLanguage = langInput && supportedLanguages.includes(langInput.value)
+				? langInput.value
+				: 'TODOS';
+			const selectedPlatform = platformSelect && supportedPlatforms.includes(platformSelect.value)
+				? platformSelect.value
+				: 'TODOS';
+
+			if (searchDebounceId) clearTimeout(searchDebounceId);
+			searchDebounceId = setTimeout(() => {
+				currentSearch = searchInput.value.trim();
+				const url = new URL(window.location.href);
+				url.searchParams.set('lang', selectedLanguage);
+				url.searchParams.set('platform', selectedPlatform);
+				if (currentSearch) {
+					url.searchParams.set('q', currentSearch);
+				} else {
+					url.searchParams.delete('q');
+				}
+				window.history.replaceState({}, '', url);
+				visibleLimit = INITIAL_VISIBLE_GAMES;
+				applyFilters(selectedLanguage, selectedPlatform, currentSearch);
+			}, 180);
+		});
+	}
+
+	if (platformSelect) {
+		platformSelect.addEventListener('change', () => {
+			const selectedLanguage = langInput && supportedLanguages.includes(langInput.value)
+				? langInput.value
+				: 'TODOS';
+			const selectedPlatform = supportedPlatforms.includes(platformSelect.value)
+				? platformSelect.value
+				: 'TODOS';
+			const url = new URL(window.location.href);
+			url.searchParams.set('lang', selectedLanguage);
+			url.searchParams.set('platform', selectedPlatform);
+			if (currentSearch) {
+				url.searchParams.set('q', currentSearch);
+			} else {
+				url.searchParams.delete('q');
+			}
+			window.history.replaceState({}, '', url);
+			visibleLimit = INITIAL_VISIBLE_GAMES;
+			applyFilters(selectedLanguage, selectedPlatform, currentSearch);
+		});
+	}
+
+	if (loadMoreButton) {
+		loadMoreButton.addEventListener('click', () => {
+			const selectedLanguage = langInput && supportedLanguages.includes(langInput.value)
+				? langInput.value
+				: 'TODOS';
+			const selectedPlatform = platformSelect && supportedPlatforms.includes(platformSelect.value)
+				? platformSelect.value
+				: 'TODOS';
+			visibleLimit += VISIBLE_STEP;
+			applyFilters(selectedLanguage, selectedPlatform, currentSearch);
+		});
+	}
+
+	syncFilterFromUrl();
+</script>
 
 <style>
 	/* Animación de entrada para las tarjetas */
