@@ -415,17 +415,37 @@ const { data: { session } } = await supabase.auth.getSession();
 		});
 	}
 
-	// Sincronizar dinámicamente juegos desde Supabase
+	// Sincronizar dinámicamente juegos desde Supabase usando fetch
 	const syncGamesFromSupabase = async () => {
 		try {
-			const { supabase } = await import('../lib/supabase');
-			const { data: allGames } = await supabase
-				.from('games')
-				.select('*')
-				.eq('is_active', true)
-				.order('title', { ascending: true });
+			const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+			const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+			
+			if (!supabaseUrl || !supabaseKey) {
+				console.warn('Supabase credentials not available');
+				return;
+			}
 
-			if (allGames && allGames.length > 0) {
+			const url = new URL(`${supabaseUrl}/rest/v1/games`);
+			url.searchParams.set('is_active', 'eq.true');
+			url.searchParams.set('order', 'title.asc');
+			url.searchParams.set('select', '*');
+
+			const response = await fetch(url.toString(), {
+				headers: {
+					apikey: supabaseKey,
+					Authorization: `Bearer ${supabaseKey}`,
+				},
+			});
+
+			if (!response.ok) {
+				console.error('Error fetching games:', response.statusText);
+				return;
+			}
+
+			const allGames = await response.json();
+
+			if (allGames && Array.isArray(allGames) && allGames.length > 0) {
 				const gamesGrid = document.getElementById('games-grid');
 				if (!gamesGrid) return;
 
