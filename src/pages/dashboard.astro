@@ -108,11 +108,11 @@ import Layout from '../layouts/Layout.astro';
               </div>
               <div class="space-y-2">
                 <label class="text-sm font-semibold text-slate-300">URL de la Portada</label>
-                <input type="url" name="cover_url" placeholder="https://ejemplo.com/portada.jpg" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500 text-sm" required />
+                <input type="text" name="cover_url" placeholder="https://ejemplo.com/portada.jpg" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500 text-sm" required />
               </div>
               <div class="space-y-2">
                 <label class="text-sm font-semibold text-slate-300">URL de Descarga</label>
-                <input type="url" name="target_url" placeholder="https://ejemplo.com/descarga" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500 text-sm" required />
+                <input type="text" name="target_url" placeholder="https://ejemplo.com/descarga" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500 text-sm" required />
               </div>
               <div class="flex items-center gap-3 p-4 rounded-lg bg-slate-900/30 border border-slate-700/50">
                 <input type="checkbox" name="has_hshop" id="has_hshop" class="w-5 h-5 rounded cursor-pointer accent-purple-500" />
@@ -160,11 +160,11 @@ import Layout from '../layouts/Layout.astro';
                 </div>
                 <div class="space-y-2">
                   <label class="text-sm font-semibold text-slate-300">URL de la Portada</label>
-                  <input type="url" name="cover_url" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 outline-none transition text-sm" required />
+                  <input type="text" name="cover_url" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 outline-none transition text-sm" required />
                 </div>
                 <div class="space-y-2">
                   <label class="text-sm font-semibold text-slate-300">URL de Descarga</label>
-                  <input type="url" name="target_url" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 outline-none transition text-sm" required />
+                  <input type="text" name="target_url" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 outline-none transition text-sm" required />
                 </div>
                 <label class="flex items-center gap-3 p-4 rounded-lg bg-slate-900/30 border border-slate-700/50">
                   <input type="checkbox" name="has_hshop" class="w-5 h-5 rounded cursor-pointer accent-purple-500" />
@@ -260,6 +260,25 @@ import Layout from '../layouts/Layout.astro';
 
   const panelIds = ['add', 'edit', 'delete', 'view'];
   const allowedLanguageCodes = ['ESP', 'ENG', 'JP'] as const;
+
+  const normalizeAndValidateUrl = (rawValue: string, fieldName: string) => {
+    const raw = (rawValue ?? '').trim();
+    if (!raw) {
+      return { ok: false as const, error: `El campo ${fieldName} es obligatorio.` };
+    }
+
+    const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+
+    try {
+      const parsed = new URL(withProtocol);
+      if (!/^https?:$/.test(parsed.protocol)) {
+        return { ok: false as const, error: `URL invalida en ${fieldName}.` };
+      }
+      return { ok: true as const, value: parsed.toString() };
+    } catch {
+      return { ok: false as const, error: `URL invalida en ${fieldName}.` };
+    }
+  };
 
   const normalizeLanguageForStorage = (rawLanguage: string) => {
     const normalized = (rawLanguage ?? '').trim().toUpperCase();
@@ -495,17 +514,29 @@ import Layout from '../layouts/Layout.astro';
       const title = formData.get('title') as string;
       const hasHshop = (formData.get('has_hshop') as string) === 'on';
       const normalizedLanguage = normalizeLanguageForStorage(String(formData.get('language') ?? ''));
+      const normalizedCoverUrl = normalizeAndValidateUrl(String(formData.get('cover_url') ?? ''), 'URL de la Portada');
+      const normalizedTargetUrl = normalizeAndValidateUrl(String(formData.get('target_url') ?? ''), 'URL de Descarga');
 
       if (!normalizedLanguage.ok) {
         showToast(normalizedLanguage.error, 'error');
+        return;
+      }
+
+      if (!normalizedCoverUrl.ok) {
+        showToast(normalizedCoverUrl.error, 'error');
+        return;
+      }
+
+      if (!normalizedTargetUrl.ok) {
+        showToast(normalizedTargetUrl.error, 'error');
         return;
       }
       
       const { error } = await supabase.from('games').insert([{
         title: title,
         platform: formData.get('platform'),
-        cover_url: formData.get('cover_url'),
-        target_url: formData.get('target_url'),
+        cover_url: normalizedCoverUrl.value,
+        target_url: normalizedTargetUrl.value,
         file_size: formData.get('file_size'),
         language: normalizedLanguage.value,
         has_hshop: hasHshop,
@@ -528,6 +559,8 @@ import Layout from '../layouts/Layout.astro';
       const formData = new FormData(editForm);
       const gameId = formData.get('game_id') as string;
       const normalizedLanguage = normalizeLanguageForStorage(String(formData.get('language') ?? ''));
+      const normalizedCoverUrl = normalizeAndValidateUrl(String(formData.get('cover_url') ?? ''), 'URL de la Portada');
+      const normalizedTargetUrl = normalizeAndValidateUrl(String(formData.get('target_url') ?? ''), 'URL de Descarga');
 
       if (!gameId) {
         showToast('Selecciona un juego para editar', 'error');
@@ -539,13 +572,23 @@ import Layout from '../layouts/Layout.astro';
         return;
       }
 
+      if (!normalizedCoverUrl.ok) {
+        showToast(normalizedCoverUrl.error, 'error');
+        return;
+      }
+
+      if (!normalizedTargetUrl.ok) {
+        showToast(normalizedTargetUrl.error, 'error');
+        return;
+      }
+
       const { error } = await supabase
         .from('games')
         .update({
           title: formData.get('title'),
           platform: formData.get('platform'),
-          cover_url: formData.get('cover_url'),
-          target_url: formData.get('target_url'),
+          cover_url: normalizedCoverUrl.value,
+          target_url: normalizedTargetUrl.value,
           file_size: formData.get('file_size'),
           language: normalizedLanguage.value,
           has_hshop: (formData.get('has_hshop') as string) === 'on',
