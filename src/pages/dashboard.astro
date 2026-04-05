@@ -261,24 +261,7 @@ import Layout from '../layouts/Layout.astro';
   const panelIds = ['add', 'edit', 'delete', 'view'];
   const allowedLanguageCodes = ['ESP', 'ENG', 'JP'] as const;
 
-  const normalizeAndValidateUrl = (rawValue: string, fieldName: string) => {
-    const raw = (rawValue ?? '').trim();
-    if (!raw) {
-      return { ok: false as const, error: `El campo ${fieldName} es obligatorio.` };
-    }
 
-    const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-
-    try {
-      const parsed = new URL(withProtocol);
-      if (!/^https?:$/.test(parsed.protocol)) {
-        return { ok: false as const, error: `URL invalida en ${fieldName}.` };
-      }
-      return { ok: true as const, value: parsed.toString() };
-    } catch {
-      return { ok: false as const, error: `URL invalida en ${fieldName}.` };
-    }
-  };
 
   const normalizeLanguageForStorage = (rawLanguage: string) => {
     const normalized = (rawLanguage ?? '').trim().toUpperCase();
@@ -514,29 +497,17 @@ import Layout from '../layouts/Layout.astro';
       const title = formData.get('title') as string;
       const hasHshop = (formData.get('has_hshop') as string) === 'on';
       const normalizedLanguage = normalizeLanguageForStorage(String(formData.get('language') ?? ''));
-      const normalizedCoverUrl = normalizeAndValidateUrl(String(formData.get('cover_url') ?? ''), 'URL de la Portada');
-      const normalizedTargetUrl = normalizeAndValidateUrl(String(formData.get('target_url') ?? ''), 'URL de Descarga');
 
       if (!normalizedLanguage.ok) {
         showToast(normalizedLanguage.error, 'error');
-        return;
-      }
-
-      if (!normalizedCoverUrl.ok) {
-        showToast(normalizedCoverUrl.error, 'error');
-        return;
-      }
-
-      if (!normalizedTargetUrl.ok) {
-        showToast(normalizedTargetUrl.error, 'error');
         return;
       }
       
       const { error } = await supabase.from('games').insert([{
         title: title,
         platform: formData.get('platform'),
-        cover_url: normalizedCoverUrl.value,
-        target_url: normalizedTargetUrl.value,
+        cover_url: formData.get('cover_url'),
+        target_url: formData.get('target_url'),
         file_size: formData.get('file_size'),
         language: normalizedLanguage.value,
         has_hshop: hasHshop,
@@ -559,8 +530,6 @@ import Layout from '../layouts/Layout.astro';
       const formData = new FormData(editForm);
       const gameId = formData.get('game_id') as string;
       const normalizedLanguage = normalizeLanguageForStorage(String(formData.get('language') ?? ''));
-      const normalizedCoverUrl = normalizeAndValidateUrl(String(formData.get('cover_url') ?? ''), 'URL de la Portada');
-      const normalizedTargetUrl = normalizeAndValidateUrl(String(formData.get('target_url') ?? ''), 'URL de Descarga');
 
       if (!gameId) {
         showToast('Selecciona un juego para editar', 'error');
@@ -572,23 +541,13 @@ import Layout from '../layouts/Layout.astro';
         return;
       }
 
-      if (!normalizedCoverUrl.ok) {
-        showToast(normalizedCoverUrl.error, 'error');
-        return;
-      }
-
-      if (!normalizedTargetUrl.ok) {
-        showToast(normalizedTargetUrl.error, 'error');
-        return;
-      }
-
       const { error } = await supabase
         .from('games')
         .update({
           title: formData.get('title'),
           platform: formData.get('platform'),
-          cover_url: normalizedCoverUrl.value,
-          target_url: normalizedTargetUrl.value,
+          cover_url: formData.get('cover_url'),
+          target_url: formData.get('target_url'),
           file_size: formData.get('file_size'),
           language: normalizedLanguage.value,
           has_hshop: (formData.get('has_hshop') as string) === 'on',

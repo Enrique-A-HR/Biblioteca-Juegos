@@ -415,6 +415,98 @@ const { data: { session } } = await supabase.auth.getSession();
 		});
 	}
 
+	// Sincronizar dinámicamente juegos desde Supabase
+	const syncGamesFromSupabase = async () => {
+		try {
+			const { supabase } = await import('../lib/supabase');
+			const { data: allGames } = await supabase
+				.from('games')
+				.select('*')
+				.eq('is_active', true)
+				.order('title', { ascending: true });
+
+			if (allGames && allGames.length > 0) {
+				const gamesGrid = document.getElementById('games-grid');
+				if (!gamesGrid) return;
+
+				// Limpiar tarjetas existentes excepto el mensaje de no resultados
+				const existingCards = Array.from(gamesGrid.querySelectorAll('[data-game-card]'));
+				existingCards.forEach(card => card.remove());
+
+				// Función para extraer etiquetas de idioma
+				const getGameLanguageTags = (language: string | null | undefined) => {
+					const normalizedLanguage = (language ?? '').toUpperCase();
+					const tags: string[] = [];
+					if (normalizedLanguage.includes('ESP')) tags.push('ESP');
+					if (normalizedLanguage.includes('ENG')) tags.push('ENG');
+					if (normalizedLanguage.includes('JP') || normalizedLanguage.includes('JPN')) tags.push('JP');
+					return tags;
+				};
+
+				// Construir las nuevas tarjetas de juegos
+				allGames.forEach((game: any) => {
+					const div = document.createElement('div');
+					div.setAttribute('data-game-card', '');
+					div.setAttribute('data-languages', getGameLanguageTags(game.language).join(','));
+					div.setAttribute('data-title', game.title.toLowerCase());
+					div.setAttribute('data-platform', String(game.platform ?? '').toUpperCase());
+					
+					const languageTags = getGameLanguageTags(game.language).join(', ');
+					const is3DS = game.platform.toLowerCase() === '3ds';
+					const isDS = game.platform.toLowerCase() === 'ds';
+
+					div.innerHTML = `
+						<div class="group perspective-1000 w-full">
+							<div class="relative transition-all duration-500 ease-out transform-style-3d group-hover:rotate-x-8 group-hover:rotate-y-[-8deg] group-hover:scale-[1.05] group-hover:shadow-2xl" style="transform-origin: center;">
+								<a href="${game.target_url}" target="_blank" rel="noopener noreferrer" class="block relative overflow-hidden rounded-xl bg-gradient-to-b from-slate-700 to-slate-900 shadow-2xl border border-slate-700/50 transform-style-3d group-hover:border-cyan-400/30 transition-colors duration-500">
+									${isDS ? '<div class="absolute top-0 left-0 right-0 z-20 px-3 pt-3 pointer-events-none"><div class="mx-auto flex w-fit items-center gap-1.5 rounded-full border border-cyan-400/40 bg-blue-500/90 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">Requires Twilight Menu ++</div></div>' : ''}
+									<div class="aspect-square overflow-hidden relative bg-white">
+										<img src="${game.cover_url}" alt="Cover for ${game.title}" class="w-full h-full object-contain transition-all duration-700 group-hover:scale-105 opacity-85 group-hover:opacity-100" loading="lazy" />
+										<div class="absolute inset-0 bg-gradient-to-br from-white/0 via-white/0 to-black/20 group-hover:to-black/40 transition-all duration-700"></div>
+									</div>
+									<div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/50 to-transparent flex flex-col justify-end p-4 translate-z-20 transition-all duration-500 group-hover:via-[#0f172a]/30 group-hover:from-[#0f172a]/95">
+										<div class="flex items-center gap-2 mb-2">
+											<span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${is3DS ? 'bg-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)]'}">
+												${game.platform}
+											</span>
+											${game.has_hshop ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-lime-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]">Hshop</span>' : ''}
+										</div>
+										<h2 class="text-white font-bold text-xl leading-tight drop-shadow-md line-clamp-2">${game.title}</h2>
+										<div class="flex justify-between items-center mt-3 pt-3 border-t border-white/10 text-[11px] font-medium text-slate-300">
+											<div class="flex items-center gap-1">${game.file_size}</div>
+											<div class="flex items-center gap-1 uppercase tracking-tighter">${languageTags}</div>
+										</div>
+									</div>
+									<div class="absolute inset-0 opacity-0 group-hover:opacity-30 bg-gradient-to-tr from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-all duration-1000 pointer-events-none"></div>
+									<div class="absolute top-0 left-0 right-0 bottom-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-radial from-cyan-400/20 via-transparent to-transparent"></div>
+								</a>
+							</div>
+						</div>
+					`;
+
+					gamesGrid.insertBefore(div, gamesGrid.querySelector('#no-results-message'));
+				});
+
+				// Actualizar la referencia de gameCards
+				gameCards.length = 0;
+				gameCards.push(...Array.from(document.querySelectorAll<HTMLElement>('[data-game-card]')));
+
+				// Re-aplicar filtros con datos frescos
+				const selectedLanguage = getLanguageFromUrl();
+				const selectedPlatform = getPlatformFromUrl();
+				visibleLimit = INITIAL_VISIBLE_GAMES;
+				applyFilters(selectedLanguage, selectedPlatform, currentSearch);
+			}
+		} catch (error) {
+			console.error('Error sincronizando juegos:', error);
+		}
+	};
+
+	// Ejecutar sincronización cuando la página carga
+	document.addEventListener('DOMContentLoaded', syncGamesFromSupabase);
+	document.addEventListener('astro:page-load', syncGamesFromSupabase);
+	syncGamesFromSupabase();
+
 	syncFilterFromUrl();
 </script>
 
