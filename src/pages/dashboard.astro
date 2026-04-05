@@ -218,7 +218,8 @@ import Layout from '../layouts/Layout.astro';
     has_hshop?: boolean;
   };
 
-  let isInitialized = false;
+  let setupController: AbortController | null = null;
+  let authSubscription: { unsubscribe: () => void } | null = null;
   let gamesCache: GameRecord[] = [];
   let currentPanel = 'add';
 
@@ -386,8 +387,12 @@ import Layout from '../layouts/Layout.astro';
 
   // Usamos una función principal para inicializar todo
   const setupAdmin = async () => {
-    if (isInitialized) return;
-    isInitialized = true;
+    setupController?.abort();
+    setupController = new AbortController();
+    const { signal } = setupController;
+
+    authSubscription?.unsubscribe();
+    authSubscription = null;
 
     const loginForm = document.getElementById('login-form') as HTMLFormElement;
     const addForm = document.getElementById('add-form') as HTMLFormElement;
@@ -399,11 +404,17 @@ import Layout from '../layouts/Layout.astro';
     const deleteSelect = document.getElementById('delete-game-select') as HTMLSelectElement | null;
     const actionButtons = document.querySelectorAll('[data-panel]');
 
+    if (!loginForm || !addForm || !editForm || !deleteForm) {
+      return;
+    }
+
     const pageViewsRaw = Number(localStorage.getItem('dashboard_page_views') ?? '0');
     localStorage.setItem('dashboard_page_views', String(pageViewsRaw + 1));
 
     // 1. Verificar sesión de forma inmediata
     const { data: { session } } = await supabase.auth.getSession();
+    if (signal.aborted) return;
+
     toggleSections(!!session);
 
     if (session) {
@@ -412,7 +423,8 @@ import Layout from '../layouts/Layout.astro';
     }
 
     // Mantener UI sincronizada con cambios de sesión
-    supabase.auth.onAuthStateChange(async (_event, activeSession) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, activeSession) => {
+      if (signal.aborted) return;
       toggleSections(!!activeSession);
 
       if (activeSession) {
@@ -420,6 +432,7 @@ import Layout from '../layouts/Layout.astro';
         setActivePanel('add');
       }
     });
+    authSubscription = authListener.subscription;
 
     actionButtons.forEach((button) => {
       button.addEventListener('click', async () => {
@@ -430,11 +443,11 @@ import Layout from '../layouts/Layout.astro';
         if (panel === 'view') {
           await loadGames();
         }
-      });
+      }, { signal });
     });
 
     // 2. Manejar Login (Previniendo el comportamiento por defecto del navegador)
-    loginForm?.addEventListener('submit', async (e) => {
+    loginForm.addEventListener('submit', async (e) => {
       e.preventDefault(); // Esto detiene el envío de datos a la URL
       
       const formData = new FormData(loginForm);
@@ -455,14 +468,14 @@ import Layout from '../layouts/Layout.astro';
         setActivePanel('add');
         loginForm.reset();
       }
-    });
+    }, { signal });
 
     editSelect?.addEventListener('change', (e) => {
       const target = e.target as HTMLSelectElement;
       if (target.value) {
         fillEditForm(target.value);
       }
-    });
+    }, { signal });
 
     deleteSelect?.addEventListener('change', (e) => {
       const target = e.target as HTMLSelectElement;
@@ -472,10 +485,10 @@ import Layout from '../layouts/Layout.astro';
           showToast(`Preparado para eliminar: ${game.title}`, 'info');
         }
       }
-    });
+    }, { signal });
 
     // 3. Manejar inserción de juegos
-    addForm?.addEventListener('submit', async (e) => {
+    addForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
       const formData = new FormData(addForm);
@@ -506,10 +519,10 @@ import Layout from '../layouts/Layout.astro';
         addForm.reset();
         await loadGames();
       }
-    });
+    }, { signal });
 
     // 4. Manejar edición de juegos
-    editForm?.addEventListener('submit', async (e) => {
+    editForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const formData = new FormData(editForm);
@@ -545,10 +558,10 @@ import Layout from '../layouts/Layout.astro';
         showToast('Juego actualizado correctamente', 'success');
         await loadGames();
       }
-    });
+    }, { signal });
 
     // 5. Manejar eliminación de juegos
-    deleteForm?.addEventListener('submit', async (e) => {
+    deleteForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const formData = new FormData(deleteForm);
@@ -568,12 +581,12 @@ import Layout from '../layouts/Layout.astro';
         showToast(`Juego eliminado${game ? `: ${game.title}` : ''}`, 'success');
         await loadGames();
       }
-    });
+    }, { signal });
 
     refreshGamesBtn?.addEventListener('click', async () => {
       await loadGames();
       showToast('Registros actualizados', 'info');
-    });
+    }, { signal });
 
     // 4. Logout
     logoutBtn?.addEventListener('click', async (e) => {
@@ -581,7 +594,7 @@ import Layout from '../layouts/Layout.astro';
       await supabase.auth.signOut();
       showToast("Sesión cerrada", 'info');
       setTimeout(() => window.location.reload(), 500);
-    });
+    }, { signal });
   };
 
   // Correr al cargar el DOM

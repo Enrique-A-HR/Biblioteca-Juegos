@@ -32,15 +32,42 @@ const getGameLanguageTags = (language: string | null | undefined) => {
 };
 
 // 1. Fetch de datos desde Supabase
-// Traemos todos los juegos activos; el filtro por idioma se aplica en cliente.
-const { data: games, error } = await supabase
-	.from('games')
-	.select('*')
-	.eq('is_active', true)
-	.order('title', { ascending: true });
+// Traemos todos los juegos activos en bloques para evitar límites por request.
+let games: any[] = [];
 
-if (error) {
-  console.error("Error al obtener los juegos:", error.message);
+const { count: totalActiveGames, error: countError } = await supabase
+	.from('games')
+	.select('id', { count: 'exact', head: true })
+	.eq('is_active', true);
+
+if (countError) {
+	console.error('Error al contar los juegos activos:', countError.message);
+}
+
+const PAGE_SIZE = 200;
+const expectedTotal = totalActiveGames ?? 0;
+
+while (games.length < expectedTotal) {
+	const from = games.length;
+	const to = from + PAGE_SIZE - 1;
+
+	const { data: chunk, error: chunkError } = await supabase
+		.from('games')
+		.select('*')
+		.eq('is_active', true)
+		.order('title', { ascending: true })
+		.range(from, to);
+
+	if (chunkError) {
+		console.error('Error al obtener juegos por bloques:', chunkError.message);
+		break;
+	}
+
+	if (!chunk?.length) {
+		break;
+	}
+
+	games = games.concat(chunk);
 }
 
 // 2. Verificar si hay una sesión activa para funciones de admin (opcional)
