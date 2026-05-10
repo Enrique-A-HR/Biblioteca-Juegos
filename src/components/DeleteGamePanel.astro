@@ -1,0 +1,106 @@
+---
+// Componente para el panel de eliminación de juegos
+---
+
+<div id="panel-delete" class="panel-card hidden bg-linear-to-br from-slate-800 to-slate-900 p-8 rounded-2xl border border-slate-700/50 shadow-2xl backdrop-blur">
+  <h3 class="text-2xl font-bold text-red-400 mb-5">Eliminar juego</h3>
+  
+  <form id="delete-form" class="space-y-4">
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-slate-300">Seleccionar registro</label>
+      <select 
+        id="delete-game-select" 
+        name="game_id" 
+        class="game-select-list w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-red-400 outline-none transition text-slate-300"
+      >
+        <option value="" selected disabled>Seleccionar juego</option>
+      </select>
+    </div>
+
+    <p class="text-sm text-slate-400">La eliminación es permanente.</p>
+
+    <button 
+      type="submit" 
+      class="w-full bg-linear-to-r from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 text-white font-bold py-3 rounded-lg transition transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      Eliminar juego
+    </button>
+  </form>
+</div>
+
+<script>
+  import { supabase } from '../lib/supabase';
+  import { showToast, type GameRecord } from '../lib/dashboardUtils';
+
+  let gamesCache: GameRecord[] = [];
+
+  function renderGameOptions() {
+    const select = document.getElementById('delete-game-select') as HTMLSelectElement;
+    if (!select) return;
+
+    const options = gamesCache
+      .map((game) => `<option value="${game.id}">${game.title} (${game.platform})</option>`)
+      .join('');
+    
+    select.innerHTML = '<option value="" selected disabled>Seleccionar juego</option>' + options;
+  }
+
+  function initializeDeletePanel() {
+    const select = document.getElementById('delete-game-select') as HTMLSelectElement;
+    const form = document.getElementById('delete-form') as HTMLFormElement;
+
+    select?.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement;
+      if (target.value) {
+        const game = gamesCache.find((item) => String(item.id) === String(target.value));
+        if (game) {
+          showToast(`Preparado para eliminar: ${game.title}`, 'info');
+        }
+      }
+    });
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+      const gameId = formData.get('game_id') as string;
+
+      if (!gameId) {
+        showToast('Selecciona un juego para eliminar', 'error');
+        return;
+      }
+
+      const game = gamesCache.find((item) => String(item.id) === String(gameId));
+      const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+      submitButton.disabled = true;
+      submitButton.textContent = 'Eliminando...';
+
+      try {
+        const { error } = await supabase.from('games').delete().eq('id', gameId);
+
+        if (error) {
+          showToast('Error al eliminar: ' + error.message, 'error');
+        } else {
+          showToast(`Juego eliminado${game ? `: ${game.title}` : ''}`, 'success');
+          window.dispatchEvent(new CustomEvent('gamesUpdated'));
+          form.reset();
+        }
+      } catch (err) {
+        showToast(`Error: ${err instanceof Error ? err.message : 'Error desconocido'}`, 'error');
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Eliminar juego';
+      }
+    });
+  }
+
+  function handleGamesUpdate(event: CustomEvent) {
+    gamesCache = event.detail.games;
+    renderGameOptions();
+  }
+
+  window.addEventListener('gamesUpdated' as any, handleGamesUpdate as any);
+  document.addEventListener('DOMContentLoaded', initializeDeletePanel);
+  document.addEventListener('astro:page-load', initializeDeletePanel);
+  initializeDeletePanel();
+</script>

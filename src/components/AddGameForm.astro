@@ -1,0 +1,204 @@
+---
+// Componente para el formulario de agregar juego
+---
+
+<div id="panel-add" class="panel-card bg-linear-to-br from-slate-800 to-slate-900 p-8 rounded-2xl border border-slate-700/50 shadow-2xl backdrop-blur">
+  <div class="flex items-center justify-between gap-4 mb-6">
+    <h3 class="text-2xl font-bold text-green-400">Agregar juego</h3>
+    <span class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Create</span>
+  </div>
+  
+  <form id="add-form" class="space-y-5">
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-slate-300">Nombre del Juego</label>
+      <input 
+        type="text" 
+        name="title" 
+        placeholder="Pokémon Platinum" 
+        class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500" 
+        required 
+      />
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div class="space-y-2">
+        <label class="text-sm font-semibold text-slate-300">Plataforma</label>
+        <select 
+          name="platform" 
+          class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition text-slate-300"
+        >
+          <option value="3DS">Nintendo 3DS</option>
+          <option value="DS">Nintendo DS</option>
+        </select>
+      </div>
+      
+      <div class="space-y-2">
+        <label class="text-sm font-semibold text-slate-300">Idioma</label>
+        <input 
+          type="text" 
+          name="language" 
+          placeholder="ESP/ENG/JP o All" 
+          class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500" 
+          required 
+        />
+      </div>
+    </div>
+
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-slate-300">Peso del Archivo</label>
+      <input 
+        type="text" 
+        name="file_size" 
+        placeholder="512 MB o 1.2 GB" 
+        class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500" 
+        required 
+      />
+    </div>
+
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-slate-300">URL de la Portada</label>
+      <input 
+        type="text" 
+        name="cover_url" 
+        placeholder="https://ejemplo.com/portada.jpg" 
+        class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500 text-sm" 
+        required 
+      />
+    </div>
+
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-slate-300">URL de Descarga</label>
+      <input 
+        type="text" 
+        name="target_url" 
+        placeholder="https://ejemplo.com/descarga" 
+        class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500 text-sm" 
+        required 
+      />
+    </div>
+
+    <div class="flex items-center gap-3 p-4 rounded-lg bg-slate-900/30 border border-slate-700/50">
+      <input 
+        type="checkbox" 
+        name="has_hshop" 
+        id="has_hshop" 
+        class="w-5 h-5 rounded cursor-pointer accent-purple-500" 
+      />
+      <label for="has_hshop" class="text-sm font-medium text-slate-300 cursor-pointer flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-purple-500/20 border border-purple-500/30">
+          <span class="text-xs font-bold text-purple-300">Hshop</span>
+        </span>
+        Disponible en Hshop
+      </label>
+    </div>
+
+    <button 
+      type="submit" 
+      class="w-full bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-bold py-3 rounded-lg transition transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" 
+    >
+      Guardar Juego
+    </button>
+  </form>
+</div>
+
+<script>
+  import { supabase } from '../lib/supabase';
+  import { normalizeLanguageForStorage, showToast } from '../lib/dashboardUtils';
+
+  function withTimeout<T>(operation: PromiseLike<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+
+      Promise.resolve(operation).then(
+        (result) => {
+          clearTimeout(timeoutId);
+          resolve(result);
+        },
+        (error) => {
+          clearTimeout(timeoutId);
+          reject(error);
+        }
+      );
+    });
+  }
+
+  function initializeAddForm() {
+    const form = document.getElementById('add-form') as HTMLFormElement | null;
+    if (!form || form.dataset.bound === 'true') return;
+
+    form.dataset.bound = 'true';
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const currentForm = e.currentTarget as HTMLFormElement;
+      const formData = new FormData(currentForm);
+      const title = String(formData.get('title') ?? '').trim();
+      const platform = String(formData.get('platform') ?? '').trim();
+      const language = String(formData.get('language') ?? '').trim();
+      const fileSize = String(formData.get('file_size') ?? '').trim();
+      const coverUrl = String(formData.get('cover_url') ?? '').trim();
+      const targetUrl = String(formData.get('target_url') ?? '').trim();
+      const hasHshop = currentForm.elements.namedItem('has_hshop') as HTMLInputElement | null;
+      const submitButton = currentForm.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+
+      if (!title || !platform || !language || !fileSize || !coverUrl || !targetUrl) {
+        showToast('Por favor rellena todos los campos', 'error');
+        return;
+      }
+
+      const normalizedLanguage = normalizeLanguageForStorage(language);
+      if (!normalizedLanguage.ok) {
+        showToast(normalizedLanguage.error, 'error');
+        return;
+      }
+
+      if (!submitButton) {
+        showToast('No se encontró el botón de guardar', 'error');
+        return;
+      }
+
+      const originalButtonText = submitButton.textContent ?? 'Guardar Juego';
+      submitButton.disabled = true;
+      submitButton.textContent = 'Guardando...';
+
+      try {
+        const response = await withTimeout<{ error: { message: string } | null }>(
+          supabase.from('games').insert([
+            {
+              title,
+              platform,
+              cover_url: coverUrl,
+              target_url: targetUrl,
+              file_size: fileSize,
+              language: normalizedLanguage.value,
+              has_hshop: hasHshop?.checked ?? false,
+              is_active: true,
+            },
+          ]),
+          15000,
+          'La petición tardó demasiado. Revisa tu conexión o la configuración de Supabase.'
+        ) as { error: { message: string } | null };
+
+        if (response.error) {
+          showToast(`Error al guardar: ${response.error.message}`, 'error');
+          return;
+        }
+
+        showToast(`¡${title} añadido correctamente al catálogo!`, 'success');
+        currentForm.reset();
+        window.dispatchEvent(new CustomEvent('request-games-refresh'));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Error desconocido';
+        showToast(`No se pudo guardar: ${message}`, 'error');
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initializeAddForm);
+  document.addEventListener('astro:page-load', initializeAddForm);
+  initializeAddForm();
+</script>

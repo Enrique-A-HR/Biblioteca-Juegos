@@ -1,0 +1,73 @@
+---
+// Componente para visualizar registros de juegos
+---
+
+<div id="panel-view" class="panel-card hidden bg-linear-to-br from-slate-800 to-slate-900 p-8 rounded-2xl border border-slate-700/50 shadow-2xl backdrop-blur">
+  <div class="flex items-center justify-between gap-4 mb-5">
+    <h3 class="text-2xl font-bold text-cyan-400">Visualizar registros</h3>
+    <button 
+      id="refresh-games-btn" 
+      class="text-xs font-semibold uppercase tracking-widest text-cyan-300 hover:text-cyan-200 transition"
+    >
+      Actualizar
+    </button>
+  </div>
+  
+  <div id="games-list" class="space-y-3 max-h-112 overflow-auto pr-1"></div>
+</div>
+
+<script>
+  import { loadGames, showToast, type GameRecord } from '../lib/dashboardUtils';
+
+  let gamesCache: GameRecord[] = [];
+
+  function renderGamesList() {
+    const list = document.getElementById('games-list');
+    if (!list) return;
+
+    if (!gamesCache.length) {
+      list.innerHTML = '<p class="text-sm text-slate-500 italic">No hay registros para mostrar.</p>';
+      return;
+    }
+
+    list.innerHTML = gamesCache.map((game) => `
+      <div class="rounded-xl border border-slate-700/60 bg-slate-950/40 p-4 flex items-start justify-between gap-4">
+        <div>
+          <p class="font-bold text-white">${game.title}</p>
+          <p class="text-xs text-slate-400 mt-1">${game.platform} · ${game.language} · ${game.file_size}</p>
+        </div>
+        <span class="text-[10px] uppercase tracking-widest px-2 py-1 rounded-full ${game.has_hshop ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-slate-700/40 text-slate-400 border border-slate-600/40'}">
+          ${game.has_hshop ? 'Hshop' : 'Normal'}
+        </span>
+      </div>
+    `).join('');
+  }
+
+  async function loadAndRenderGames() {
+    try {
+      gamesCache = await loadGames();
+      renderGamesList();
+    } catch (err) {
+      showToast(`Error: ${err instanceof Error ? err.message : 'Error al cargar juegos'}`, 'error');
+    }
+  }
+
+  function initializeViewPanel() {
+    const refreshBtn = document.getElementById('refresh-games-btn');
+
+    refreshBtn?.addEventListener('click', async () => {
+      await loadAndRenderGames();
+      showToast('Registros actualizados', 'info');
+    });
+  }
+
+  function handleGamesUpdate(event: CustomEvent) {
+    gamesCache = event.detail.games;
+    renderGamesList();
+  }
+
+  window.addEventListener('gamesUpdated' as any, handleGamesUpdate as any);
+  document.addEventListener('DOMContentLoaded', initializeViewPanel);
+  document.addEventListener('astro:page-load', initializeViewPanel);
+  initializeViewPanel();
+</script>

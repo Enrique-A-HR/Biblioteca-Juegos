@@ -1,5 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import AddGameForm from '../components/AddGameForm.astro';
+import EditGamePanel from '../components/EditGamePanel.astro';
+import DeleteGamePanel from '../components/DeleteGamePanel.astro';
+import ViewGamesPanel from '../components/ViewGamesPanel.astro';
+import StatsCards from '../components/StatsCards.astro';
+import ActionButtons from '../components/ActionButtons.astro';
 ---
 
 <Layout title="Administración de Catálogo">
@@ -39,164 +45,17 @@ import Layout from '../layouts/Layout.astro';
           </button>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div class="rounded-2xl border border-cyan-500/20 bg-linear-to-br from-cyan-500/10 to-slate-900/70 p-6 shadow-lg shadow-cyan-950/10 backdrop-blur">
-            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-300">Visualizaciones de la página</p>
-            <div class="mt-3 flex items-end justify-between gap-4">
-              <span id="page-views-value" class="text-4xl font-black text-white">0</span>
-              <span class="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-200">Live</span>
-            </div>
-            <p class="mt-3 text-sm text-slate-400">Contador local de visitas al dashboard para monitoreo rápido.</p>
-          </div>
+        <StatsCards />
 
-          <div class="rounded-2xl border border-emerald-500/20 bg-linear-to-br from-emerald-500/10 to-slate-900/70 p-6 shadow-lg shadow-emerald-950/10 backdrop-blur">
-            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">Juegos totales</p>
-            <div class="mt-3 flex items-end justify-between gap-4">
-              <span id="total-games-value" class="text-4xl font-black text-white">0</span>
-              <span class="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-200">Catalog</span>
-            </div>
-            <p class="mt-3 text-sm text-slate-400">Total de registros cargados desde Supabase.</p>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <button data-panel="add" class="action-btn rounded-2xl border border-green-500/30 bg-green-500/10 p-5 text-left transition hover:-translate-y-1 hover:bg-green-500/15">
-            <span class="block text-sm font-semibold text-green-300 uppercase tracking-widest">Agregar</span>
-            <span class="mt-2 block text-lg font-bold text-white">Nuevo juego</span>
-          </button>
-          <button data-panel="edit" class="action-btn rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-left transition hover:-translate-y-1 hover:bg-amber-500/15">
-            <span class="block text-sm font-semibold text-amber-300 uppercase tracking-widest">Editar</span>
-            <span class="mt-2 block text-lg font-bold text-white">Modificar registro</span>
-          </button>
-          <button data-panel="delete" class="action-btn rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-left transition hover:-translate-y-1 hover:bg-red-500/15">
-            <span class="block text-sm font-semibold text-red-300 uppercase tracking-widest">Eliminar</span>
-            <span class="mt-2 block text-lg font-bold text-white">Borrar juego</span>
-          </button>
-          <button data-panel="view" class="action-btn rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-5 text-left transition hover:-translate-y-1 hover:bg-cyan-500/15">
-            <span class="block text-sm font-semibold text-cyan-300 uppercase tracking-widest">Visualizar</span>
-            <span class="mt-2 block text-lg font-bold text-white">Ver registros</span>
-          </button>
-        </div>
+        <ActionButtons />
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-          <div id="panel-add" class="panel-card bg-linear-to-br from-slate-800 to-slate-900 p-8 rounded-2xl border border-slate-700/50 shadow-2xl backdrop-blur">
-            <div class="flex items-center justify-between gap-4 mb-6">
-              <h3 class="text-2xl font-bold text-green-400">Agregar juego</h3>
-              <span class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Create</span>
-            </div>
-            <form id="add-form" class="space-y-5">
-              <div class="space-y-2">
-                <label class="text-sm font-semibold text-slate-300">Nombre del Juego</label>
-                <input type="text" name="title" placeholder="Pokémon Platinum" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500" required />
-              </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-2">
-                  <label class="text-sm font-semibold text-slate-300">Plataforma</label>
-                  <select name="platform" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition text-slate-300">
-                    <option value="3DS">Nintendo 3DS</option>
-                    <option value="DS">Nintendo DS</option>
-                  </select>
-                </div>
-                <div class="space-y-2">
-                  <label class="text-sm font-semibold text-slate-300">Idioma</label>
-                  <input type="text" name="language" placeholder="ESP/ENG/JP o All" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500" required />
-                </div>
-              </div>
-              <div class="space-y-2">
-                <label class="text-sm font-semibold text-slate-300">Peso del Archivo</label>
-                <input type="text" name="file_size" placeholder="512 MB o 1.2 GB" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500" required />
-              </div>
-              <div class="space-y-2">
-                <label class="text-sm font-semibold text-slate-300">URL de la Portada</label>
-                <input type="text" name="cover_url" placeholder="https://ejemplo.com/portada.jpg" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500 text-sm" required />
-              </div>
-              <div class="space-y-2">
-                <label class="text-sm font-semibold text-slate-300">URL de Descarga</label>
-                <input type="text" name="target_url" placeholder="https://ejemplo.com/descarga" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-green-400 focus:bg-slate-900 outline-none transition placeholder-slate-500 text-sm" required />
-              </div>
-              <div class="flex items-center gap-3 p-4 rounded-lg bg-slate-900/30 border border-slate-700/50">
-                <input type="checkbox" name="has_hshop" id="has_hshop" class="w-5 h-5 rounded cursor-pointer accent-purple-500" />
-                <label for="has_hshop" class="text-sm font-medium text-slate-300 cursor-pointer flex items-center gap-2">
-                  <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-purple-500/20 border border-purple-500/30">
-                    <span class="text-xs font-bold text-purple-300">Hshop</span>
-                  </span>
-                  Disponible en Hshop
-                </label>
-              </div>
-              <button type="submit" class="w-full bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-bold py-3 rounded-lg transition transform hover:scale-105 shadow-lg">
-                Guardar Juego
-              </button>
-            </form>
-          </div>
+          <AddGameForm />
 
           <div class="space-y-6">
-            <div id="panel-edit" class="panel-card hidden bg-linear-to-br from-slate-800 to-slate-900 p-8 rounded-2xl border border-slate-700/50 shadow-2xl backdrop-blur">
-              <h3 class="text-2xl font-bold text-amber-400 mb-5">Editar juego</h3>
-              <form id="edit-form" class="space-y-4">
-                <div class="space-y-2">
-                  <label class="text-sm font-semibold text-slate-300">Seleccionar registro</label>
-                  <select id="edit-game-select" name="game_id" class="game-select-list w-full rounded-lg bg-slate-900/50 border border-slate-600 outline-none transition text-slate-300"></select>
-                </div>
-                <div class="space-y-2">
-                  <label class="text-sm font-semibold text-slate-300">Nombre del Juego</label>
-                  <input type="text" name="title" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 outline-none transition" required />
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                  <div class="space-y-2">
-                    <label class="text-sm font-semibold text-slate-300">Plataforma</label>
-                    <select name="platform" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 outline-none transition text-slate-300">
-                      <option value="3DS">Nintendo 3DS</option>
-                      <option value="DS">Nintendo DS</option>
-                    </select>
-                  </div>
-                  <div class="space-y-2">
-                    <label class="text-sm font-semibold text-slate-300">Idioma</label>
-                    <input type="text" name="language" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 outline-none transition" required />
-                  </div>
-                </div>
-                <div class="space-y-2">
-                  <label class="text-sm font-semibold text-slate-300">Peso del Archivo</label>
-                  <input type="text" name="file_size" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 outline-none transition" required />
-                </div>
-                <div class="space-y-2">
-                  <label class="text-sm font-semibold text-slate-300">URL de la Portada</label>
-                  <input type="text" name="cover_url" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 outline-none transition text-sm" required />
-                </div>
-                <div class="space-y-2">
-                  <label class="text-sm font-semibold text-slate-300">URL de Descarga</label>
-                  <input type="text" name="target_url" class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 outline-none transition text-sm" required />
-                </div>
-                <label class="flex items-center gap-3 p-4 rounded-lg bg-slate-900/30 border border-slate-700/50">
-                  <input type="checkbox" name="has_hshop" class="w-5 h-5 rounded cursor-pointer accent-purple-500" />
-                  <span class="text-sm font-medium text-slate-300">Disponible en Hshop</span>
-                </label>
-                <button type="submit" class="w-full bg-linear-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold py-3 rounded-lg transition transform hover:scale-105 shadow-lg">
-                  Guardar cambios
-                </button>
-              </form>
-            </div>
-
-            <div id="panel-delete" class="panel-card hidden bg-linear-to-br from-slate-800 to-slate-900 p-8 rounded-2xl border border-slate-700/50 shadow-2xl backdrop-blur">
-              <h3 class="text-2xl font-bold text-red-400 mb-5">Eliminar juego</h3>
-              <form id="delete-form" class="space-y-4">
-                <div class="space-y-2">
-                  <label class="text-sm font-semibold text-slate-300">Seleccionar registro</label>
-                  <select id="delete-game-select" name="game_id" class="game-select-list w-full rounded-lg bg-slate-900/50 border border-slate-600 outline-none transition text-slate-300"></select>
-                </div>
-                <p class="text-sm text-slate-400">La eliminación es permanente.</p>
-                <button type="submit" class="w-full bg-linear-to-r from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 text-white font-bold py-3 rounded-lg transition transform hover:scale-105 shadow-lg">
-                  Eliminar juego
-                </button>
-              </form>
-            </div>
-
-            <div id="panel-view" class="panel-card hidden bg-linear-to-br from-slate-800 to-slate-900 p-8 rounded-2xl border border-slate-700/50 shadow-2xl backdrop-blur">
-              <div class="flex items-center justify-between gap-4 mb-5">
-                <h3 class="text-2xl font-bold text-cyan-400">Visualizar registros</h3>
-                <button id="refresh-games-btn" class="text-xs font-semibold uppercase tracking-widest text-cyan-300 hover:text-cyan-200">Actualizar</button>
-              </div>
-              <div id="games-list" class="space-y-3 max-h-112 overflow-auto pr-1"></div>
-            </div>
+            <EditGamePanel />
+            <DeleteGamePanel />
+            <ViewGamesPanel />
           </div>
         </div>
       </div>
@@ -206,49 +65,10 @@ import Layout from '../layouts/Layout.astro';
 
 <script>
   import { supabase } from '../lib/supabase';
-
-  type GameRecord = {
-    id: string | number;
-    title: string;
-    platform: string;
-    cover_url: string;
-    target_url: string;
-    file_size: string;
-    language: string;
-    has_hshop?: boolean;
-  };
+  import { loadGames, showToast } from '../lib/dashboardUtils';
 
   let setupController: AbortController | null = null;
   let authSubscription: { unsubscribe: () => void } | null = null;
-  let gamesCache: GameRecord[] = [];
-  let currentPanel = 'add';
-
-  // Sistema de notificaciones mejorado
-  function showToast(message: string, type: 'success' | 'error' | 'info' = 'info') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    const bgColor = type === 'success' ? 'from-green-500 to-emerald-600' : 
-                    type === 'error' ? 'from-red-500 to-red-600' : 
-                    'from-blue-500 to-cyan-600';
-    
-    const icon = type === 'success' ? '✓' : 
-                 type === 'error' ? '✕' : 
-                 'ℹ';
-
-    toast.className = `bg-gradient-to-r ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-5 duration-300`;
-    toast.innerHTML = `<span class="text-xl font-bold">${icon}</span><span>${message}</span>`;
-    
-    container.appendChild(toast);
-
-    setTimeout(() => {
-      toast.classList.add('animate-out', 'fade-out', 'slide-out-to-top-5');
-      toast.style.transition = 'all 0.3s ease-out';
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
-  }
 
   const toggleSections = (isLoggedIn: boolean) => {
     const loginSection = document.getElementById('login-section');
@@ -258,136 +78,7 @@ import Layout from '../layouts/Layout.astro';
     adminSection?.classList.toggle('hidden', !isLoggedIn);
   };
 
-  const panelIds = ['add', 'edit', 'delete', 'view'];
-  const allowedLanguageCodes = ['ESP', 'ENG', 'JP'] as const;
-
-
-
-  const normalizeLanguageForStorage = (rawLanguage: string) => {
-    const normalized = (rawLanguage ?? '').trim().toUpperCase();
-    const allAliases = ['ALL', 'TODO', 'TODOS', 'MULTI', 'MULTIIDIOMA'];
-
-    if (!normalized) {
-      return { ok: false as const, error: 'Ingresa al menos un idioma (ESP, ENG, JP o All).' };
-    }
-
-    if (allAliases.includes(normalized)) {
-      return { ok: true as const, value: 'ESP/ENG/JP' };
-    }
-
-    const tokens = normalized
-      .split(/[\s,/|+-]+/)
-      .map((token) => token.trim())
-      .filter(Boolean);
-
-    const unique = Array.from(new Set(tokens));
-    const valid = unique.filter((token): token is (typeof allowedLanguageCodes)[number] =>
-      (allowedLanguageCodes as readonly string[]).includes(token)
-    );
-
-    if (!valid.length) {
-      return { ok: false as const, error: 'Idioma invalido. Usa ESP, ENG, JP o All.' };
-    }
-
-    return { ok: true as const, value: valid.join('/') };
-  };
-
-  const setActivePanel = (panel: string) => {
-    currentPanel = panel;
-
-    panelIds.forEach((panelName) => {
-      const panelElement = document.getElementById(`panel-${panelName}`);
-      panelElement?.classList.toggle('hidden', panelName !== panel);
-    });
-
-    document.querySelectorAll('.action-btn').forEach((button) => {
-      const isActive = button.getAttribute('data-panel') === panel;
-      button.classList.toggle('ring-2', isActive);
-      button.classList.toggle('ring-offset-2', isActive);
-      button.classList.toggle('ring-offset-slate-900', isActive);
-      button.classList.toggle('ring-cyan-400', isActive);
-    });
-  };
-
-  const renderGameOptions = () => {
-    const editSelect = document.getElementById('edit-game-select') as HTMLSelectElement | null;
-    const deleteSelect = document.getElementById('delete-game-select') as HTMLSelectElement | null;
-
-    const options = gamesCache.map((game) => `<option value="${game.id}">${game.title} (${game.platform})</option>`).join('');
-    const emptyOption = '<option value="" selected disabled>Seleccionar juego</option>';
-
-    if (editSelect) editSelect.innerHTML = emptyOption + options;
-    if (deleteSelect) deleteSelect.innerHTML = emptyOption + options;
-  };
-
-  const renderStats = () => {
-    const totalGamesValue = document.getElementById('total-games-value');
-    const pageViewsValue = document.getElementById('page-views-value');
-
-    if (totalGamesValue) {
-      totalGamesValue.textContent = String(gamesCache.length);
-    }
-
-    if (pageViewsValue) {
-      const currentViews = Number(localStorage.getItem('dashboard_page_views') ?? '0');
-      pageViewsValue.textContent = String(currentViews);
-    }
-  };
-
-  const renderGamesList = () => {
-    const list = document.getElementById('games-list');
-    if (!list) return;
-
-    if (!gamesCache.length) {
-      list.innerHTML = '<p class="text-sm text-slate-500 italic">No hay registros para mostrar.</p>';
-      return;
-    }
-
-    list.innerHTML = gamesCache.map((game) => `
-      <div class="rounded-xl border border-slate-700/60 bg-slate-950/40 p-4 flex items-start justify-between gap-4">
-        <div>
-          <p class="font-bold text-white">${game.title}</p>
-          <p class="text-xs text-slate-400 mt-1">${game.platform} · ${game.language} · ${game.file_size}</p>
-        </div>
-        <span class="text-[10px] uppercase tracking-widest px-2 py-1 rounded-full ${game.has_hshop ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-slate-700/40 text-slate-400 border border-slate-600/40'}">
-          ${game.has_hshop ? 'Hshop' : 'Normal'}
-        </span>
-      </div>
-    `).join('');
-  };
-
-  const loadGames = async () => {
-    const { data, error } = await supabase
-      .from('games')
-      .select('*')
-      .order('title', { ascending: true });
-
-    if (error) {
-      showToast('Error al cargar juegos: ' + error.message, 'error');
-      return;
-    }
-
-    gamesCache = data ?? [];
-    renderGameOptions();
-    renderGamesList();
-    renderStats();
-  };
-
-  const fillEditForm = (gameId: string) => {
-    const game = gamesCache.find((item) => String(item.id) === String(gameId));
-    const editForm = document.getElementById('edit-form') as HTMLFormElement | null;
-    if (!game || !editForm) return;
-
-    (editForm.elements.namedItem('title') as HTMLInputElement).value = game.title ?? '';
-    (editForm.elements.namedItem('platform') as HTMLSelectElement).value = game.platform ?? '3DS';
-    (editForm.elements.namedItem('language') as HTMLInputElement).value = game.language ?? '';
-    (editForm.elements.namedItem('file_size') as HTMLInputElement).value = game.file_size ?? '';
-    (editForm.elements.namedItem('cover_url') as HTMLInputElement).value = game.cover_url ?? '';
-    (editForm.elements.namedItem('target_url') as HTMLInputElement).value = game.target_url ?? '';
-    (editForm.elements.namedItem('has_hshop') as HTMLInputElement).checked = !!game.has_hshop;
-  };
-
-  // Usamos una función principal para inicializar todo
+  // Función principal para configurar el dashboard
   const setupAdmin = async () => {
     setupController?.abort();
     setupController = new AbortController();
@@ -397,31 +88,28 @@ import Layout from '../layouts/Layout.astro';
     authSubscription = null;
 
     const loginForm = document.getElementById('login-form') as HTMLFormElement;
-    const addForm = document.getElementById('add-form') as HTMLFormElement;
-    const editForm = document.getElementById('edit-form') as HTMLFormElement;
-    const deleteForm = document.getElementById('delete-form') as HTMLFormElement;
     const logoutBtn = document.getElementById('logout-btn');
-    const refreshGamesBtn = document.getElementById('refresh-games-btn');
-    const editSelect = document.getElementById('edit-game-select') as HTMLSelectElement | null;
-    const deleteSelect = document.getElementById('delete-game-select') as HTMLSelectElement | null;
-    const actionButtons = document.querySelectorAll('[data-panel]');
 
-    if (!loginForm || !addForm || !editForm || !deleteForm) {
+    if (!loginForm) {
       return;
     }
 
     const pageViewsRaw = Number(localStorage.getItem('dashboard_page_views') ?? '0');
     localStorage.setItem('dashboard_page_views', String(pageViewsRaw + 1));
 
-    // 1. Verificar sesión de forma inmediata
+    // 1. Verificar sesión inmediatamente
     const { data: { session } } = await supabase.auth.getSession();
     if (signal.aborted) return;
 
     toggleSections(!!session);
 
     if (session) {
-      await loadGames();
-      setActivePanel('add');
+      try {
+        const games = await loadGames();
+        window.dispatchEvent(new CustomEvent('gamesUpdated', { detail: { games } }));
+      } catch (err) {
+        showToast(`Error al cargar juegos: ${err instanceof Error ? err.message : 'Error desconocido'}`, 'error');
+      }
     }
 
     // Mantener UI sincronizada con cambios de sesión
@@ -430,179 +118,89 @@ import Layout from '../layouts/Layout.astro';
       toggleSections(!!activeSession);
 
       if (activeSession) {
-        await loadGames();
-        setActivePanel('add');
+        try {
+          const games = await loadGames();
+          window.dispatchEvent(new CustomEvent('gamesUpdated', { detail: { games } }));
+        } catch (err) {
+          showToast(`Error al cargar juegos: ${err instanceof Error ? err.message : 'Error desconocido'}`, 'error');
+        }
       }
     });
     authSubscription = authListener.subscription;
 
-    actionButtons.forEach((button) => {
-      button.addEventListener('click', async () => {
-        const panel = button.getAttribute('data-panel');
-        if (!panel) return;
-
-        setActivePanel(panel);
-        if (panel === 'view') {
-          await loadGames();
-        }
-      }, { signal });
-    });
-
-    // 2. Manejar Login (Previniendo el comportamiento por defecto del navegador)
+    // 2. Manejar Login
     loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault(); // Esto detiene el envío de datos a la URL
+      e.preventDefault();
       
       const formData = new FormData(loginForm);
       const email = formData.get('email') as string;
       const password = formData.get('password') as string;
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const submitButton = loginForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+      submitButton.disabled = true;
+      submitButton.textContent = 'Accediendo...';
 
-      if (error) {
-        showToast("Error: " + error.message, 'error');
-      } else {
-        showToast("¡Bienvenido! Sesión iniciada correctamente", 'success');
-        toggleSections(!!data.session);
-        await loadGames();
-        setActivePanel('add');
-        loginForm.reset();
-      }
-    }, { signal });
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-    editSelect?.addEventListener('change', (e) => {
-      const target = e.target as HTMLSelectElement;
-      if (target.value) {
-        fillEditForm(target.value);
-      }
-    }, { signal });
-
-    deleteSelect?.addEventListener('change', (e) => {
-      const target = e.target as HTMLSelectElement;
-      if (target.value) {
-        const game = gamesCache.find((item) => String(item.id) === String(target.value));
-        if (game) {
-          showToast(`Preparado para eliminar: ${game.title}`, 'info');
+        if (error) {
+          showToast("Error: " + error.message, 'error');
+        } else {
+          showToast("¡Bienvenido! Sesión iniciada correctamente", 'success');
+          toggleSections(!!data.session);
+          if (data.session) {
+            try {
+              const games = await loadGames();
+              window.dispatchEvent(new CustomEvent('gamesUpdated', { detail: { games } }));
+            } catch (err) {
+              showToast(`Error al cargar juegos: ${err instanceof Error ? err.message : 'Error desconocido'}`, 'error');
+            }
+          }
+          loginForm.reset();
         }
+      } catch (err) {
+        showToast(`Error: ${err instanceof Error ? err.message : 'Error desconocido'}`, 'error');
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Acceder al Panel';
       }
     }, { signal });
 
-    // 3. Manejar inserción de juegos
-    addForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const formData = new FormData(addForm);
-      const title = formData.get('title') as string;
-      const hasHshop = (formData.get('has_hshop') as string) === 'on';
-      const normalizedLanguage = normalizeLanguageForStorage(String(formData.get('language') ?? ''));
+    window.addEventListener('request-games-refresh', async () => {
+      if (signal.aborted) return;
 
-      if (!normalizedLanguage.ok) {
-        showToast(normalizedLanguage.error, 'error');
-        return;
-      }
-      
-      const { error } = await supabase.from('games').insert([{
-        title: title,
-        platform: formData.get('platform'),
-        cover_url: formData.get('cover_url'),
-        target_url: formData.get('target_url'),
-        file_size: formData.get('file_size'),
-        language: normalizedLanguage.value,
-        has_hshop: hasHshop,
-        is_active: true
-      }]);
-
-      if (error) {
-        showToast("Error al guardar: " + error.message, 'error');
-      } else {
-        showToast(`¡${title} añadido correctamente al catálogo!`, 'success');
-        addForm.reset();
-        await loadGames();
+      try {
+        const games = await loadGames();
+        window.dispatchEvent(new CustomEvent('gamesUpdated', { detail: { games } }));
+      } catch (err) {
+        showToast(`Error al cargar juegos: ${err instanceof Error ? err.message : 'Error desconocido'}`, 'error');
       }
     }, { signal });
 
-    // 4. Manejar edición de juegos
-    editForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const formData = new FormData(editForm);
-      const gameId = formData.get('game_id') as string;
-      const normalizedLanguage = normalizeLanguageForStorage(String(formData.get('language') ?? ''));
-
-      if (!gameId) {
-        showToast('Selecciona un juego para editar', 'error');
-        return;
-      }
-
-      if (!normalizedLanguage.ok) {
-        showToast(normalizedLanguage.error, 'error');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('games')
-        .update({
-          title: formData.get('title'),
-          platform: formData.get('platform'),
-          cover_url: formData.get('cover_url'),
-          target_url: formData.get('target_url'),
-          file_size: formData.get('file_size'),
-          language: normalizedLanguage.value,
-          has_hshop: (formData.get('has_hshop') as string) === 'on',
-        })
-        .eq('id', gameId);
-
-      if (error) {
-        showToast('Error al actualizar: ' + error.message, 'error');
-      } else {
-        showToast('Juego actualizado correctamente', 'success');
-        await loadGames();
-      }
-    }, { signal });
-
-    // 5. Manejar eliminación de juegos
-    deleteForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const formData = new FormData(deleteForm);
-      const gameId = formData.get('game_id') as string;
-
-      if (!gameId) {
-        showToast('Selecciona un juego para eliminar', 'error');
-        return;
-      }
-
-      const game = gamesCache.find((item: any) => String(item.id) === String(gameId));
-      const { error } = await supabase.from('games').delete().eq('id', gameId);
-
-      if (error) {
-        showToast('Error al eliminar: ' + error.message, 'error');
-      } else {
-        showToast(`Juego eliminado${game ? `: ${game.title}` : ''}`, 'success');
-        await loadGames();
-      }
-    }, { signal });
-
-    refreshGamesBtn?.addEventListener('click', async () => {
-      await loadGames();
-      showToast('Registros actualizados', 'info');
-    }, { signal });
-
-    // 4. Logout
+    // 3. Logout
     logoutBtn?.addEventListener('click', async (e) => {
       e.preventDefault();
-      await supabase.auth.signOut();
-      showToast("Sesión cerrada", 'info');
-      setTimeout(() => window.location.reload(), 500);
+      const btn = e.target as HTMLButtonElement;
+      btn.disabled = true;
+      
+      try {
+        await supabase.auth.signOut();
+        showToast("Sesión cerrada", 'info');
+        setTimeout(() => window.location.reload(), 500);
+      } catch (err) {
+        showToast(`Error al cerrar sesión: ${err instanceof Error ? err.message : 'Error desconocido'}`, 'error');
+        btn.disabled = false;
+      }
     }, { signal });
   };
 
   // Correr al cargar el DOM
   document.addEventListener('DOMContentLoaded', setupAdmin);
   
-  // Si usas ViewTransitions de Astro, esto es vital:
+  // Si usas ViewTransitions de Astro
   document.addEventListener('astro:page-load', setupAdmin);
   
   // Ejecución inmediata por si el DOM ya está listo
@@ -647,5 +245,6 @@ import Layout from '../layouts/Layout.astro';
   .game-select-list {
     max-height: 13.5rem;
     overflow-y: auto;
+    padding: 0.5rem;
   }
 </style>

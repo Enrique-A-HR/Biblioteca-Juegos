@@ -1,0 +1,53 @@
+---
+// Componente para mostrar estadísticas del dashboard
+---
+
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+  <div class="rounded-2xl border border-cyan-500/20 bg-linear-to-br from-cyan-500/10 to-slate-900/70 p-6 shadow-lg shadow-cyan-950/10 backdrop-blur">
+    <p class="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-300">Visualizaciones de la página</p>
+    <div class="mt-3 flex items-end justify-between gap-4">
+      <span id="page-views-value" class="text-4xl font-black text-white">0</span>
+      <span class="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-200">Live</span>
+    </div>
+    <p class="mt-3 text-sm text-slate-400">Contador local de visitas al dashboard para monitoreo rápido.</p>
+  </div>
+
+  <div class="rounded-2xl border border-emerald-500/20 bg-linear-to-br from-emerald-500/10 to-slate-900/70 p-6 shadow-lg shadow-emerald-950/10 backdrop-blur">
+    <p class="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">Juegos totales</p>
+    <div class="mt-3 flex items-end justify-between gap-4">
+      <span id="total-games-value" class="text-4xl font-black text-white">0</span>
+      <span class="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-200">Catalog</span>
+    </div>
+    <p class="mt-3 text-sm text-slate-400">Total de registros cargados desde Supabase.</p>
+  </div>
+</div>
+
+<script>
+  import { type GameRecord } from '../lib/dashboardUtils';
+
+  function renderStats(totalGames: number) {
+    const totalGamesValue = document.getElementById('total-games-value');
+    const pageViewsValue = document.getElementById('page-views-value');
+
+    if (totalGamesValue) {
+      totalGamesValue.textContent = String(totalGames);
+    }
+
+    if (pageViewsValue) {
+      const currentViews = Number(localStorage.getItem('dashboard_page_views') ?? '0');
+      pageViewsValue.textContent = String(currentViews);
+    }
+  }
+
+  function handleGamesUpdate(event: CustomEvent) {
+    const games = event.detail.games as GameRecord[];
+    renderStats(games.length);
+  }
+
+  window.addEventListener('gamesUpdated' as any, handleGamesUpdate as any);
+
+  // Inicializar las vistas
+  document.addEventListener('DOMContentLoaded', () => {
+    renderStats(0);
+  });
+</script>

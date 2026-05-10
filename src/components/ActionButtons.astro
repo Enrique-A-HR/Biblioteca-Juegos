@@ -1,0 +1,93 @@
+---
+// Componente para los botones de acción del dashboard
+---
+
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+  <button 
+    data-panel="add" 
+    class="action-btn rounded-2xl border border-green-500/30 bg-green-500/10 p-5 text-left transition hover:-translate-y-1 hover:bg-green-500/15"
+  >
+    <span class="block text-sm font-semibold text-green-300 uppercase tracking-widest">Agregar</span>
+    <span class="mt-2 block text-lg font-bold text-white">Nuevo juego</span>
+  </button>
+
+  <button 
+    data-panel="edit" 
+    class="action-btn rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-left transition hover:-translate-y-1 hover:bg-amber-500/15"
+  >
+    <span class="block text-sm font-semibold text-amber-300 uppercase tracking-widest">Editar</span>
+    <span class="mt-2 block text-lg font-bold text-white">Modificar registro</span>
+  </button>
+
+  <button 
+    data-panel="delete" 
+    class="action-btn rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-left transition hover:-translate-y-1 hover:bg-red-500/15"
+  >
+    <span class="block text-sm font-semibold text-red-300 uppercase tracking-widest">Eliminar</span>
+    <span class="mt-2 block text-lg font-bold text-white">Borrar juego</span>
+  </button>
+
+  <button 
+    data-panel="view" 
+    class="action-btn rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-5 text-left transition hover:-translate-y-1 hover:bg-cyan-500/15"
+  >
+    <span class="block text-sm font-semibold text-cyan-300 uppercase tracking-widest">Visualizar</span>
+    <span class="mt-2 block text-lg font-bold text-white">Ver registros</span>
+  </button>
+</div>
+
+<script>
+  import { loadGames, showToast } from '../lib/dashboardUtils';
+
+  let currentPanel = 'add';
+  const panelIds = ['add', 'edit', 'delete', 'view'];
+
+  function setActivePanel(panel: string) {
+    currentPanel = panel;
+
+    // Actualizar visibilidad de paneles
+    panelIds.forEach((panelName) => {
+      const panelElement = document.getElementById(`panel-${panelName}`);
+      panelElement?.classList.toggle('hidden', panelName !== panel);
+    });
+
+    // Marcar botón activo
+    document.querySelectorAll('[data-panel]').forEach((button) => {
+      const isActive = button.getAttribute('data-panel') === panel;
+      button.classList.toggle('ring-2', isActive);
+      button.classList.toggle('ring-offset-2', isActive);
+      button.classList.toggle('ring-offset-slate-900', isActive);
+      button.classList.toggle('ring-cyan-400', isActive);
+    });
+  }
+
+  function initializeActionButtons() {
+    const buttons = document.querySelectorAll('[data-panel]');
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', async () => {
+        const panel = button.getAttribute('data-panel');
+        if (!panel) return;
+
+        setActivePanel(panel);
+        
+        // Cargar juegos si se abre el panel de visualización
+        if (panel === 'view') {
+          try {
+            const games = await loadGames();
+            window.dispatchEvent(new CustomEvent('gamesUpdated', { detail: { games } }));
+          } catch (err) {
+            showToast(`Error al cargar: ${err instanceof Error ? err.message : 'Error desconocido'}`, 'error');
+          }
+        }
+      });
+    });
+
+    // Inicializar con el primer panel
+    setActivePanel('add');
+  }
+
+  document.addEventListener('DOMContentLoaded', initializeActionButtons);
+  document.addEventListener('astro:page-load', initializeActionButtons);
+  initializeActionButtons();
+</script>

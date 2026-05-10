@@ -1,0 +1,204 @@
+---
+// Componente para el panel de edición de juegos
+---
+
+<div id="panel-edit" class="panel-card hidden bg-linear-to-br from-slate-800 to-slate-900 p-8 rounded-2xl border border-slate-700/50 shadow-2xl backdrop-blur">
+  <h3 class="text-2xl font-bold text-amber-400 mb-5">Editar juego</h3>
+  
+  <form id="edit-form" class="space-y-4">
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-slate-300">Seleccionar registro</label>
+      <select 
+        id="edit-game-select" 
+        name="game_id" 
+        class="game-select-list w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-amber-400 outline-none transition text-slate-300"
+      >
+        <option value="" selected disabled>Seleccionar juego</option>
+      </select>
+    </div>
+
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-slate-300">Nombre del Juego</label>
+      <input 
+        type="text" 
+        name="title" 
+        class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-amber-400 outline-none transition" 
+        required 
+      />
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div class="space-y-2">
+        <label class="text-sm font-semibold text-slate-300">Plataforma</label>
+        <select 
+          name="platform" 
+          class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-amber-400 outline-none transition text-slate-300"
+        >
+          <option value="3DS">Nintendo 3DS</option>
+          <option value="DS">Nintendo DS</option>
+        </select>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-sm font-semibold text-slate-300">Idioma</label>
+        <input 
+          type="text" 
+          name="language" 
+          class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-amber-400 outline-none transition" 
+          required 
+        />
+      </div>
+    </div>
+
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-slate-300">Peso del Archivo</label>
+      <input 
+        type="text" 
+        name="file_size" 
+        class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-amber-400 outline-none transition" 
+        required 
+      />
+    </div>
+
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-slate-300">URL de la Portada</label>
+      <input 
+        type="text" 
+        name="cover_url" 
+        class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-amber-400 outline-none transition text-sm" 
+        required 
+      />
+    </div>
+
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-slate-300">URL de Descarga</label>
+      <input 
+        type="text" 
+        name="target_url" 
+        class="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-slate-600 focus:border-amber-400 outline-none transition text-sm" 
+        required 
+      />
+    </div>
+
+    <label class="flex items-center gap-3 p-4 rounded-lg bg-slate-900/30 border border-slate-700/50">
+      <input 
+        type="checkbox" 
+        name="has_hshop" 
+        class="w-5 h-5 rounded cursor-pointer accent-purple-500" 
+      />
+      <span class="text-sm font-medium text-slate-300">Disponible en Hshop</span>
+    </label>
+
+    <button 
+      type="submit" 
+      class="w-full bg-linear-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold py-3 rounded-lg transition transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      Guardar cambios
+    </button>
+  </form>
+</div>
+
+<script>
+  import { supabase } from '../lib/supabase';
+  import { normalizeLanguageForStorage, showToast, type GameRecord } from '../lib/dashboardUtils';
+
+  let gamesCache: GameRecord[] = [];
+
+  function fillEditForm(game: GameRecord) {
+    const form = document.getElementById('edit-form') as HTMLFormElement;
+    if (!form) return;
+
+    (form.elements.namedItem('title') as HTMLInputElement).value = game.title ?? '';
+    (form.elements.namedItem('platform') as HTMLSelectElement).value = game.platform ?? '3DS';
+    (form.elements.namedItem('language') as HTMLInputElement).value = game.language ?? '';
+    (form.elements.namedItem('file_size') as HTMLInputElement).value = game.file_size ?? '';
+    (form.elements.namedItem('cover_url') as HTMLInputElement).value = game.cover_url ?? '';
+    (form.elements.namedItem('target_url') as HTMLInputElement).value = game.target_url ?? '';
+    (form.elements.namedItem('has_hshop') as HTMLInputElement).checked = !!game.has_hshop;
+  }
+
+  function renderGameOptions() {
+    const select = document.getElementById('edit-game-select') as HTMLSelectElement;
+    if (!select) return;
+
+    const options = gamesCache
+      .map((game) => `<option value="${game.id}">${game.title} (${game.platform})</option>`)
+      .join('');
+    
+    select.innerHTML = '<option value="" selected disabled>Seleccionar juego</option>' + options;
+  }
+
+  function initializeEditPanel() {
+    const select = document.getElementById('edit-game-select') as HTMLSelectElement;
+    const form = document.getElementById('edit-form') as HTMLFormElement;
+
+    select?.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement;
+      if (target.value) {
+        const game = gamesCache.find((item) => String(item.id) === String(target.value));
+        if (game) {
+          fillEditForm(game);
+        }
+      }
+    });
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+      const gameId = formData.get('game_id') as string;
+      const normalizedLanguage = normalizeLanguageForStorage(String(formData.get('language') ?? ''));
+
+      if (!gameId) {
+        showToast('Selecciona un juego para editar', 'error');
+        return;
+      }
+
+      if (!normalizedLanguage.ok) {
+        showToast(normalizedLanguage.error, 'error');
+        return;
+      }
+
+      const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+      submitButton.disabled = true;
+      submitButton.textContent = 'Guardando...';
+
+      try {
+        const { error } = await supabase
+          .from('games')
+          .update({
+            title: formData.get('title'),
+            platform: formData.get('platform'),
+            cover_url: formData.get('cover_url'),
+            target_url: formData.get('target_url'),
+            file_size: formData.get('file_size'),
+            language: normalizedLanguage.value,
+            has_hshop: (form.elements.namedItem('has_hshop') as HTMLInputElement)?.checked ?? false,
+          })
+          .eq('id', gameId);
+
+        if (error) {
+          showToast('Error al actualizar: ' + error.message, 'error');
+        } else {
+          showToast('Juego actualizado correctamente', 'success');
+          window.dispatchEvent(new CustomEvent('gamesUpdated'));
+        }
+      } catch (err) {
+        showToast(`Error: ${err instanceof Error ? err.message : 'Error desconocido'}`, 'error');
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Guardar cambios';
+      }
+    });
+  }
+
+  function handleGamesUpdate(event: CustomEvent) {
+    gamesCache = event.detail.games;
+    renderGameOptions();
+  }
+
+  window.addEventListener('gamesUpdated' as any, handleGamesUpdate as any);
+  document.addEventListener('DOMContentLoaded', initializeEditPanel);
+  document.addEventListener('astro:page-load', initializeEditPanel);
+  initializeEditPanel();
+</script>
